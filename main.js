@@ -3,44 +3,44 @@ const quoteContainer = document.getElementById("quote-container");
 const quoteText = document.getElementById("quote");
 const authorText = document.getElementById("author");
 const twitterBtn = document.getElementById("twitter");
-const newQuoteBtn = document.getElementById("new-quote");
+const getNewQuoteBtn = document.getElementById("new-quote");
 const loader = document.getElementById("loader");
 
 let apiQuotes = [];
 
-// When loading
-function loading() {
+function showLoadingSpinner() {
   loader.hidden = false;
   quoteContainer.hidden = true;
 }
 
-// Loading complete
-function loaded() {
+function hideLoadingSpinner() {
   loader.hidden = true;
   quoteContainer.hidden = false;
 }
 
-// Generate a new quote
-function newQuote() {
-  loading();
+function getNewQuote() {
+  showLoadingSpinner();
   return apiQuotes[Math.floor(Math.random() * apiQuotes.length)];
 }
-// Get Quotes From API
-async function getQuotes() {
+async function fetchQuotesFromAPI(retriesLeft) {
     const apiUrl = "https://type.fit/api/quotes";
     try {
-        const response = await fetch(apiUrl);
-        apiQuotes = await response.json();
-        updateQuote(newQuote());
+      const response = await fetch(apiUrl);
+      apiQuotes = await response.json();
+      updateQuoteInDOM(getNewQuote());
     }
     catch (error) {
-        getQuotes();
-        console.log(`An error occurced: ${error}`)
+      if (retriesLeft > 0) {
+        fetchQuotesFromAPI(retriesLeft-=1);
+      }
+      else {
+        apiQuotes = [{text: "An error occurred and a quote couldn't be gotten :(", author: ""}]
+        updateQuoteInDOM(getNewQuote());
+      }
     }
 }
 
-// Update Quotes in DOM
-function updateQuote(quote) {
+function updateQuoteInDOM(quote) {
   if (quote.text.length <= 75) {
     quoteText.classList.add('short-quote')
   }
@@ -49,10 +49,9 @@ function updateQuote(quote) {
   }
     quoteText.textContent = quote.text;
     authorText.textContent = quote.author ? quote.author : "Unknown";
-    loaded();
+    hideLoadingSpinner();
 }
 
-// Tweet Quote
 function tweetQuote(){
   const twitterUrl = `https://twitter.com/intent/tweet?text=${quoteText.textContent} - ${authorText.textContent}`;
   window.open(twitterUrl, '_blank');
@@ -61,7 +60,7 @@ function tweetQuote(){
 // Event Listeners
 
 twitterBtn.addEventListener('click', tweetQuote);
-newQuoteBtn.addEventListener('click', () => updateQuote(newQuote()));
+getNewQuoteBtn.addEventListener('click', () => updateQuoteInDOM(getNewQuote()));
 
 // On Load
-getQuotes()
+fetchQuotesFromAPI(10)
